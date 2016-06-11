@@ -30,8 +30,7 @@ public class ImageViewer extends JFrame implements ActionListener {
     }
 
     public void updateImageViewer(String image) {
-        ImageIcon imageIcon = new ImageIcon(image);
-        imageLabel.setIcon(imageIcon);
+        imageLabel.setText(image);
         repaint();
     }
 
