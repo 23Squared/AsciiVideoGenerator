@@ -3,6 +3,7 @@ package com.twoThreeS.asciiVideoGenerator;
 import com.google.inject.Guice;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
+import com.twoThreeS.asciiImage.processors.ImageConverter;
 import com.twoThreeS.asciiVideoGenerator.guiceModules.AppModule;
 import com.twoThreeS.asciiVideoGenerator.imaging.ImageViewer;
 import com.twoThreeS.asciiVideoGenerator.imaging.VideoCapture;
@@ -21,15 +22,19 @@ public class App {
 
     private VideoCapture videoCapture;
     private ImageViewer imageViewer;
+    private ImageConverter imageConverter;
+    private AsciiImgCache imageCache;
+    private AsciiToImageConverter asciiImageConverter;
 
-    private AsciiImgCache cache;
-    private AsciiToImageConverter imageConverter;
+    private boolean grayscaling = false;
 
     @Inject
     public App(VideoCapture videoCapture,
-               ImageViewer imageViewer) {
+               ImageViewer imageViewer,
+               ImageConverter imageConverter) {
         this.videoCapture = videoCapture;
         this.imageViewer = imageViewer;
+        this.imageConverter = imageConverter;
     }
 
     public static void main(String[] args) {
@@ -38,23 +43,41 @@ public class App {
         Injector appInjector = Guice.createInjector(new AppModule());
         App application = appInjector.getInstance(App.class);
         application.initialise();
+
+        if(args.length == 1 && Boolean.parseBoolean(args[0]) == true) {
+            LOGGER.info("Enabling grayscaling");
+            application.setGrayscaling(true);
+        }
+
         application.run();
     }
 
     public void initialise() {
-        LOGGER.info("Initialising video context...");
-        cache = AsciiImgCache.create(new Font("Courier", Font.BOLD, 6));
-        imageConverter = new AsciiToImageConverter(cache, new StructuralSimilarityFitStrategy());
+        LOGGER.info("Building font cache...");
+        imageCache = AsciiImgCache.create(new Font("Courier", Font.BOLD, 6));
+
+        LOGGER.info("Initialising image converter...");
+        asciiImageConverter = new AsciiToImageConverter(imageCache, new StructuralSimilarityFitStrategy());
         imageViewer.setVisible(true);
     }
 
     public void run() {
         while(true) {
             LOGGER.debug("Starting render cycle");
-            BufferedImage image = videoCapture.captureImage();
-            BufferedImage asciiImage = imageConverter.convertImage(image);
+            BufferedImage capture = videoCapture.captureImage();
+            BufferedImage image = capture;
+
+            if(grayscaling) {
+                image = imageConverter.convertToGrayscale(capture);
+            }
+
+            BufferedImage asciiImage = asciiImageConverter.convertImage(image);
             imageViewer.updateImageViewer(asciiImage);
             LOGGER.debug("Finished render cycle");
         }
+    }
+
+    public void setGrayscaling(boolean grayscaling) {
+        this.grayscaling = grayscaling;
     }
 }
