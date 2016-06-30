@@ -8,6 +8,8 @@
     <artifactId>asciiVideoGenerator</artifactId>
     <version>1.0-SNAPSHOT</version>
 
+
+
     <dependencies>
         <dependency>
             <groupId>com.google.inject</groupId>
